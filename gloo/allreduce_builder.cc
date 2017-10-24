@@ -21,6 +21,7 @@
 #include "gloo/cuda_allreduce_halving_doubling.h"
 #include "gloo/cuda_allreduce_halving_doubling_pipelined.h"
 #include "gloo/cuda_allreduce_local.h"
+#include "gloo/cuda_allreduce_nccl.h"
 #include "gloo/cuda_allreduce_ring.h"
 #include "gloo/cuda_allreduce_ring_chunked.h"
 #endif
@@ -150,6 +151,13 @@ std::unique_ptr<Algorithm> AllreduceBuilder<T>::getAlgorithm(
         return getAlgorithmCuda<CudaAllreduceRingChunked, T>(
           gpuDirect_, context, inputs_, count_, streams_);
         break;
+      case NCCL:
+#if GLOO_USE_NCCL
+        return getAlgorithmCuda<CudaAllreduceNCCL, T>(
+          gpuDirect_, context, inputs_, count_, streams_);
+#else
+        GLOO_THROW("Gloo not compiled with NCCL");
+#endif
       default:
         GLOO_ENFORCE(false, "Unhandled implementation: ", implementation_);
         break;
