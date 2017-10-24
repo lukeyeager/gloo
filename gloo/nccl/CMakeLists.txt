@@ -1,9 +1,11 @@
 set(GLOO_NCCL_SRCS
-  "${CMAKE_CURRENT_SOURCE_DIR}/nccl.cu"
+  "${CMAKE_CURRENT_SOURCE_DIR}/nccl.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/nccl_distributed.cc"
   )
 
 set(GLOO_NCCL_HDRS
   "${CMAKE_CURRENT_SOURCE_DIR}/nccl.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/nccl_distributed.h"
   )
 
 list(APPEND GLOO_CUDA_SRCS ${GLOO_NCCL_SRCS})

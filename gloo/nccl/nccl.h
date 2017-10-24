@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "gloo/common/logging.h"
+#include "gloo/context.h"
 #include "gloo/cuda.h"
 #include "gloo/types.h"
 
@@ -84,12 +85,24 @@ class NCCLExecution {
 };
 
 template <typename T>
-class NCCLContext;
+class NCCLContext {
+ public:
+  NCCLContext(const std::vector<int>& devices);
+  ~NCCLContext();
+
+  // Instances cannot be copied or copy-assigned
+  NCCLContext(const NCCLContext&) = delete;
+  NCCLContext& operator=(const NCCLContext&) = delete;
+
+  const std::vector<int> devices;
+  std::vector<ncclComm_t> comms;
+};
 
 template <typename T>
 class NCCLOp {
  public:
-  explicit NCCLOp(NCCLExecution<T>&& execution);
+  explicit NCCLOp(NCCLExecution<T>&& execution,
+      const std::shared_ptr<Context>& context=nullptr, bool distributed=false);
   NCCLOp(NCCLOp&&) = default;
   virtual ~NCCLOp() = default;
 
@@ -152,8 +165,11 @@ class AllreduceOp : public NCCLOp<T> {
  public:
   AllreduceOp(
     NCCLExecution<T>&& execution,
-    const CudaReductionFunction<T>* fn)
-      : NCCLOp<T>(std::move(execution)), op_(toReductionOp(fn)) {
+    const CudaReductionFunction<T>* fn,
+    const std::shared_ptr<Context>& context=nullptr,
+    bool distributed=false)
+      : NCCLOp<T>(std::move(execution), context, distributed),
+      op_(toReductionOp(fn)) {
     for (const auto& element : execution.elements) {
       GLOO_ENFORCE_EQ(
         element.src.getCount(),

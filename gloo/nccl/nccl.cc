@@ -14,6 +14,10 @@
 
 #include "gloo/cuda_private.h"
 
+#if NCCL_VERSION_MIN(2,0,0)
+#include "gloo/nccl/nccl_distributed.h"
+#endif
+
 namespace gloo {
 namespace nccl {
 
@@ -27,32 +31,24 @@ static CudaDeviceStreams& getNcclStreams() {
 }
 
 template <typename T>
-class NCCLContext {
- public:
-  NCCLContext(const std::vector<int>& devices) : devices(devices) {
-    // Initialze comms. Synchronize with conflicting CUDA and NCCL operations.
-    comms.resize(devices.size());
-    std::lock_guard<std::mutex> lock(CudaShared::getMutex());
-    NCCL_CHECK(ncclCommInitAll(comms.data(), devices.size(), devices.data()));
-  }
-  ~NCCLContext() {
-    for (auto i = 0; i < devices.size(); ++i) {
-      CudaDeviceScope scope(devices[i]);
-      {
-        // Synchronize memory allocation with NCCL operations
-        std::lock_guard<std::mutex> lock(CudaShared::getMutex());
-        ncclCommDestroy(comms[i]);
-      }
+NCCLContext<T>::NCCLContext(const std::vector<int>& devices) : devices(devices) {
+  // Initialze comms. Synchronize with conflicting CUDA and NCCL operations.
+  comms.resize(devices.size());
+  std::lock_guard<std::mutex> lock(CudaShared::getMutex());
+  NCCL_CHECK(ncclCommInitAll(comms.data(), devices.size(), devices.data()));
+}
+
+template <typename T>
+NCCLContext<T>::~NCCLContext() {
+  for (auto i = 0; i < devices.size(); ++i) {
+    CudaDeviceScope scope(devices[i]);
+    {
+      // Synchronize memory allocation with NCCL operations
+      std::lock_guard<std::mutex> lock(CudaShared::getMutex());
+      ncclCommDestroy(comms[i]);
     }
   }
-
-  // Instances cannot be copied or copy-assigned
-  NCCLContext(const NCCLContext&) = delete;
-  NCCLContext& operator=(const NCCLContext&) = delete;
-
-  const std::vector<int> devices;
-  std::vector<ncclComm_t> comms;
-};
+}
 
 // Initializing NCCL communications is expensive. Allocate context as needed per
 // unique device set and cache for reuse.
@@ -166,8 +162,21 @@ class ncclTypeWrapper<double> {
 };
 
 template <typename T>
-NCCLOp<T>::NCCLOp(NCCLExecution<T>&& execution)
-    : execution_(std::move(execution)), context_(getNcclContext(execution_)) {}
+NCCLOp<T>::NCCLOp(NCCLExecution<T>&& execution,
+    const std::shared_ptr<Context>& context, bool distributed)
+  : execution_(std::move(execution))
+{
+  if (distributed) {
+#if NCCL_VERSION_MIN(2,0,0)
+    GLOO_ENFORCE(context, "Context is null for a distributed NCCL op");
+    context_ = NCCLDistributedContext<T>::getCached(execution_, context);
+#else
+    GLOO_THROW("Distributed ops are only supported with NCCL >= v2");
+#endif
+  } else {
+    context_ = getNcclContext(execution_);
+  }
+}
 
 template <typename T>
 void NCCLOp<T>::wait() {
