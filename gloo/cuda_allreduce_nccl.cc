@@ -7,7 +7,7 @@
  * of patent rights can be found in the PATENTS file in the same directory.
  */
 
-#include "gloo/cuda_allreduce_nccl2.h"
+#include "gloo/cuda_allreduce_nccl.h"
 
 #include "gloo/broadcast_one_to_all.h"
 #include "gloo/cuda_private.h"
@@ -15,8 +15,8 @@
 
 namespace gloo {
 
-template <typename T, typename W>
-CudaAllreduceNCCL<T, W>::CudaAllreduceNCCL(
+template <typename T>
+CudaAllreduceNCCL<T>::CudaAllreduceNCCL(
   const std::shared_ptr<Context>& context,
   const std::vector<T*>& ptrs,
   const int count,
@@ -84,8 +84,8 @@ CudaAllreduceNCCL<T, W>::CudaAllreduceNCCL(
   }
 }
 
-template <typename T, typename W>
-void CudaAllreduceNCCL<T, W>::run() {
+template <typename T>
+void CudaAllreduceNCCL<T>::run() {
   {
     NCCL_CHECK(ncclGroupStart());
     for (int i=0; i<devicePtrs_.size(); i++) {
@@ -101,8 +101,8 @@ void CudaAllreduceNCCL<T, W>::run() {
     CUDA_CHECK(cudaStreamSynchronize(*streams_[i]));
 }
 
-template <typename T, typename W>
-CudaAllreduceNCCL<T, W>::~CudaAllreduceNCCL() {
+template <typename T>
+CudaAllreduceNCCL<T>::~CudaAllreduceNCCL() {
   std::lock_guard<std::mutex> lock(CudaShared::getMutex());
   for (auto& comm : comms_)
     ncclCommDestroy(comm);
@@ -110,8 +110,7 @@ CudaAllreduceNCCL<T, W>::~CudaAllreduceNCCL() {
 
 // Instantiate templates
 #define INSTANTIATE_TEMPLATE(T)                                         \
-template class CudaAllreduceNCCL<T, CudaHostWorkspace<T> >;            \
-template class CudaAllreduceNCCL<T, CudaDeviceWorkspace<T> >;
+template class CudaAllreduceNCCL<T>;
 
 INSTANTIATE_TEMPLATE(int8_t);
 INSTANTIATE_TEMPLATE(int32_t);

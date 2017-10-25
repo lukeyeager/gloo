@@ -157,9 +157,9 @@ void runBenchmark(options& x) {
     } else if (x.benchmark == "cuda_allreduce_ring_chunked") {
       builder.setImplementation(
         gloo::AllreduceBuilder<T>::RingChunked);
-    } else if (x.benchmark == "cuda_allreduce_nccl2") {
+    } else if (x.benchmark == "cuda_allreduce_nccl") {
       builder.setImplementation(
-        gloo::AllreduceBuilder<T>::Nccl2);
+        gloo::AllreduceBuilder<T>::NCCL);
     } else {
       GLOO_ENFORCE(false, "Invalid algorithm: ", x.benchmark);
     }
