@@ -17,15 +17,15 @@
 namespace gloo {
 
 template <typename T, typename W = CudaHostWorkspace<T> >
-class CudaAllreduceNccl2 : public Algorithm {
+class CudaAllreduceNCCL : public Algorithm {
  public:
-  CudaAllreduceNccl2(
+  CudaAllreduceNCCL(
       const std::shared_ptr<Context>& context,
       const std::vector<T*>& ptrs,
       const int count,
       const std::vector<cudaStream_t>& streams = std::vector<cudaStream_t>());
 
-  virtual ~CudaAllreduceNccl2();
+  virtual ~CudaAllreduceNCCL();
 
   virtual void run() override;
 
