@@ -13,7 +13,7 @@
 
 namespace gloo {
 
-template <typename T, typename W = CudaHostWorkspace<T> >
+template <typename T>
 class CudaAllreduceNCCL : public Algorithm {
  public:
   CudaAllreduceNCCL(

@@ -153,8 +153,9 @@ std::unique_ptr<Algorithm> AllreduceBuilder<T>::getAlgorithm(
         break;
       case NCCL:
 #if GLOO_USE_NCCL
-        return getAlgorithmCuda<CudaAllreduceNCCL, T>(
-          gpuDirect_, context, inputs_, count_, streams_);
+        // don't call getAlgorithmCuda() because no workspace is needed
+        return std::unique_ptr<::gloo::Algorithm>(
+            new CudaAllreduceNCCL<T>(context, inputs_, count_, streams_));
 #else
         GLOO_THROW("Gloo not compiled with NCCL");
 #endif

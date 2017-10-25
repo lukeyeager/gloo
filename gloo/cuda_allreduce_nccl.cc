@@ -20,8 +20,8 @@ std::vector<nccl::NCCLElement<T> > toDeviceElements(
   return elements;
 }
 
-template <typename T, typename W>
-CudaAllreduceNCCL<T, W>::CudaAllreduceNCCL(
+template <typename T>
+CudaAllreduceNCCL<T>::CudaAllreduceNCCL(
     const std::shared_ptr<Context>& context,
     const std::vector<T*>& ptrs,
     const int count,
@@ -37,16 +37,15 @@ CudaAllreduceNCCL<T, W>::CudaAllreduceNCCL(
       CudaReductionFunction<T>::sum, context, true);
 }
 
-template <typename T, typename W>
-void CudaAllreduceNCCL<T, W>::run() {
+template <typename T>
+void CudaAllreduceNCCL<T>::run() {
   op_->runAsync();
   op_->wait();
 }
 
 // Instantiate templates
 #define INSTANTIATE_TEMPLATE(T)                                         \
-template class CudaAllreduceNCCL<T, CudaHostWorkspace<T> >;             \
-template class CudaAllreduceNCCL<T, CudaDeviceWorkspace<T> >;
+template class CudaAllreduceNCCL<T>;
 
 INSTANTIATE_TEMPLATE(int8_t);
 INSTANTIATE_TEMPLATE(int32_t);
