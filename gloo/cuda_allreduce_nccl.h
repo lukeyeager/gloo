@@ -32,24 +32,8 @@ class CudaAllreduceNCCL : public Algorithm {
  protected:
   std::vector<CudaDevicePointer<T> > devicePtrs_;
   std::vector<CudaStream> streams_;
-  CudaStream* scratchStream_;
-
   std::vector<ncclComm_t> comms_;
-
   const int count_;
-  const int bytes_;
-  const bool synchronizeDeviceOutputs_;
-  const CudaReductionFunction<T>* fn_;
-
-  std::unique_ptr<LocalOp<T> > localReduceOp_;
-  std::unique_ptr<LocalOp<T> > localBroadcastOp_;
-
-  std::unique_ptr<transport::Buffer> sendDataBuf_;
-  std::unique_ptr<transport::Buffer> recvDataBuf_;
-
-  int dummy_;
-  std::unique_ptr<transport::Buffer> sendNotificationBuf_;
-  std::unique_ptr<transport::Buffer> recvNotificationBuf_;
 };
 
 } // namespace gloo

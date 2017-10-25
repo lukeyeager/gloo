@@ -22,10 +22,7 @@ CudaAllreduceNCCL<T>::CudaAllreduceNCCL(
   const int count,
   const std::vector<cudaStream_t>& streams)
     : Algorithm(context),
-      count_(count),
-      bytes_(count_ * sizeof(T)),
-      synchronizeDeviceOutputs_(streams.size() == 0),
-      fn_(CudaReductionFunction<T>::sum) {
+      count_(count) {
   auto newStream = true;
   if (streams.size() > 0) {
     GLOO_ENFORCE_EQ(streams.size(), ptrs.size());
