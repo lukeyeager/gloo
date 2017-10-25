@@ -27,6 +27,7 @@ class CudaAllreduceNCCL : public Algorithm {
   virtual void run() override;
 
  protected:
+  std::vector<CudaDevicePointer<T> > ptrs_;
   std::vector<CudaStream> streams_;
   std::unique_ptr<nccl::NCCLOp<T>> op_;
 };

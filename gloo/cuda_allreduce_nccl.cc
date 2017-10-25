@@ -8,33 +8,38 @@
 namespace gloo {
 
 template <typename T>
-std::vector<nccl::NCCLElement<T> > toDeviceElements(
-    const std::vector<T*>& ptrs, const int count,
-    std::vector<CudaStream>& streams) {
-  std::vector<nccl::NCCLElement<T> > elements;
-  for (auto i = 0; i < ptrs.size(); i++) {
-    elements.push_back(nccl::NCCLElement<T>(
-          CudaDevicePointer<T>::create(ptrs[i], count), streams[i],
-          CudaDevicePointer<T>::create(ptrs[i], count), streams[i]));
-  }
-  return elements;
-}
-
-template <typename T>
 CudaAllreduceNCCL<T>::CudaAllreduceNCCL(
     const std::shared_ptr<Context>& context,
     const std::vector<T*>& ptrs,
     const int count,
     const std::vector<cudaStream_t>& streams) : Algorithm(context) {
-  // Create streams
-  GLOO_ENFORCE(streams.size() == 0, "Setting streams not supported");
-  for (auto i = 0; i < ptrs.size(); i++) {
-    streams_.push_back(CudaStream(getGPUIDForPointer(ptrs[i])));
+  // Populate ptrs_ and streams_
+  bool newStream = true;
+  if (streams.size() > 0) {
+    GLOO_ENFORCE_EQ(streams.size(), ptrs.size());
+    newStream = false;
   }
+  for (auto i = 0; i < ptrs.size(); i++) {
+    ptrs_.emplace_back(CudaDevicePointer<T>::create(ptrs[i], count));
+    auto& ptr = ptrs_[-1];
+    if (newStream) {
+      streams_.emplace_back(CudaStream(ptr.getDeviceID()));
+    } else {
+      streams_.emplace_back(CudaStream(ptr.getDeviceID(), streams[i]));
+    }
+  }
+
+  // Create NCCLElements
+  std::vector<nccl::NCCLElement<T> > elements;
+  for (auto i = 0; i < ptrs.size(); i++) {
+    elements.push_back(nccl::NCCLElement<T>(
+          ptrs_[i].range(0, count), streams_[i],
+          ptrs_[i].range(0, count), streams_[i]));
+  }
+
   // Create op
   op_ = make_unique<nccl::AllreduceOp<T>>(
-      toDeviceElements(ptrs, count, streams_),
-      CudaReductionFunction<T>::sum, context, true);
+      std::move(elements), CudaReductionFunction<T>::sum, context, true);
 }
 
 template <typename T>
