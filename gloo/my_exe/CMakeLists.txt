@@ -1,0 +1,6 @@
+if(USE_CUDA)
+  cuda_add_executable(exe_nccl "${CMAKE_CURRENT_SOURCE_DIR}/main_nccl.cc")
+  target_link_libraries(exe_nccl gloo_cuda)
+  cuda_add_executable(exe_gloo "${CMAKE_CURRENT_SOURCE_DIR}/main_gloo.cc")
+  target_link_libraries(exe_gloo gloo_cuda)
+endif()
